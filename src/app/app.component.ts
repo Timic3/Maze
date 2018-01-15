@@ -1,4 +1,5 @@
-import { Component, AfterContentInit } from '@angular/core';
+import { Component, AfterContentInit, HostListener } from '@angular/core';
+import { CCircle } from './classes/CCircle';
 
 // Find another way to link it with NPM
 declare var GlslCanvas: any;
@@ -12,6 +13,15 @@ export class AppComponent implements AfterContentInit {
   private glslSandbox: any;
   private animationsEnabled = true;
   private animationText = 'Disable fancy animations';
+
+  // Move to CONSTANTS class!
+  private GAME_X = 700;
+  private GAME_Y = 700;
+
+  private game: HTMLCanvasElement;
+  private context: CanvasRenderingContext2D;
+  private star: CCircle;
+  private mouseDown = false;
 
   ngAfterContentInit() {
     // Construct GLSL sandbox
@@ -35,13 +45,68 @@ export class AppComponent implements AfterContentInit {
     // Update canvas based on window size
     this.windowUpdate();
     window.addEventListener('resize', this.windowUpdate, false);
+
+    // Game
+    this.game = <HTMLCanvasElement>document.getElementById('game');
+    this.context = this.game.getContext('2d');
+    this.game.setAttribute('width', String(this.GAME_X));
+    this.game.setAttribute('height', String(this.GAME_Y));
+
+    this.star = new CCircle(10, 10, 15);
+
+    this.gameLoop();
+  }
+
+  gameLoop = () => {
+    requestAnimationFrame(this.gameLoop);
+    this.context.clearRect(0, 0, this.GAME_X, this.GAME_Y);
+    this.context.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    this.context.fillRect(0, 0, this.GAME_X, this.GAME_Y);
+    const spacingW = (this.GAME_X / 14 - 5);
+    const spacingH = (this.GAME_Y / 14 - 5);
+    const spacingRatio = (2 / 5);
+    for (let x = 0; x < this.GAME_X / (this.GAME_X / 14); x++) {
+      for (let y = 0; y < this.GAME_Y / (this.GAME_Y / 14); y++) {
+        const padX = x * (this.GAME_X / 14 + spacingRatio);
+        const padY = y * (this.GAME_X / 14 + spacingRatio);
+        if (this.star.x > padX && this.star.x < padX + spacingW &&
+            this.star.y > padY && this.star.y < padY + spacingH) {
+          this.context.fillStyle = 'rgba(255, 0, 255, 1)';
+        } else {
+          this.context.fillStyle = 'rgba(255, 255, 255, 1)';
+        }
+        this.context.fillRect(padX, padY, spacingW, spacingH);
+      }
+    }
+    this.star.draw(this.context);
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent) {
+    const canvasBounds = this.game.getBoundingClientRect();
+    const mouseX = event.clientX - canvasBounds.left;
+    const mouseY = event.clientY - canvasBounds.top;
+    this.star.x = mouseX;
+    this.star.y = mouseY;
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onMouseDown(event: MouseEvent) {
+    this.mouseDown = true;
+    this.star.color = 'blue';
+  }
+
+  @HostListener('document:mouseup', ['$event'])
+  onMouseUp(event: MouseEvent) {
+    this.mouseDown = false;
+    this.star.color = 'red';
   }
 
   // To retain scope (this) in event listener, I use Lambda expression
-  private windowUpdate = () => {
+  windowUpdate = () => {
     const galaxy = document.getElementById('galaxyBackground');
-    galaxy.setAttribute('width', window.innerWidth + '');
-    galaxy.setAttribute('height', window.innerHeight + '');
+    galaxy.setAttribute('width', String(window.innerWidth));
+    galaxy.setAttribute('height', String(window.innerHeight));
     // Update GL viewport to fit the canvas
     this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
   }

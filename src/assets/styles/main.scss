@@ -13,6 +13,17 @@ body {
     z-index: -9999;
 }
 
+#game {
+    position: absolute;
+    margin: auto;
+    /*width: 500px;
+    height: 500px;*/
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
 h1 {
     color: white;
     text-shadow: 2px 2px black;
