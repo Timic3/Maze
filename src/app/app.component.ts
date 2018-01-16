@@ -1,4 +1,6 @@
 import { Component, AfterContentInit, HostListener } from '@angular/core';
+
+import { AppConstants } from './app.constants';
 import { CCircle } from './classes/CCircle';
 
 // Find another way to link it with NPM
@@ -49,8 +51,8 @@ export class AppComponent implements AfterContentInit {
     // Game
     this.game = <HTMLCanvasElement>document.getElementById('game');
     this.context = this.game.getContext('2d');
-    this.game.setAttribute('width', String(this.GAME_X));
-    this.game.setAttribute('height', String(this.GAME_Y));
+    this.game.setAttribute('width', String(AppConstants.GAME_WIDTH));
+    this.game.setAttribute('height', String(AppConstants.GAME_HEIGHT));
 
     this.star = new CCircle(10, 10, 15);
 
@@ -59,10 +61,10 @@ export class AppComponent implements AfterContentInit {
 
   gameLoop = () => {
     requestAnimationFrame(this.gameLoop);
-    this.context.clearRect(0, 0, this.GAME_X, this.GAME_Y);
-    this.context.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    this.context.fillRect(0, 0, this.GAME_X, this.GAME_Y);
-    const spacingW = (this.GAME_X / 14 - 5);
+    this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+    this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    this.context.fillRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+    /*const spacingW = (this.GAME_X / 14 - 5);
     const spacingH = (this.GAME_Y / 14 - 5);
     const spacingRatio = (2 / 5);
     for (let x = 0; x < this.GAME_X / (this.GAME_X / 14); x++) {
@@ -77,8 +79,21 @@ export class AppComponent implements AfterContentInit {
         }
         this.context.fillRect(padX, padY, spacingW, spacingH);
       }
+    }*/
+    for (let x = 0; x <= AppConstants.PADS_X; x++) {
+      for (let y = 0; y <= AppConstants.PADS_Y; y++) {
+        const padX = x * (AppConstants.PADS_WIDTH) + AppConstants.SPACING;
+        const padY = y * (AppConstants.PADS_HEIGHT) + AppConstants.SPACING;
+        const padWidth = AppConstants.PADS_WIDTH - AppConstants.SPACING * 2;
+        const padHeight = AppConstants.PADS_HEIGHT - AppConstants.SPACING * 2;
+        const R = 255; // Math.floor(Math.random() * 255);
+        const G = 0; // Math.floor(Math.random() * 255);
+        const B = 0; // Math.floor(Math.random() * 255);
+        this.context.fillStyle = 'rgb(' + R + ', ' + G + ', ' + B + ')';
+        this.context.fillRect(padX, padY, padWidth, padHeight);
+      }
     }
-    this.star.draw(this.context);
+    // this.star.draw(this.context);
   }
 
   @HostListener('document:mousemove', ['$event'])
