@@ -16,10 +16,6 @@ export class AppComponent implements AfterContentInit {
   private animationsEnabled = true;
   private animationText = 'Disable fancy animations';
 
-  // Move to CONSTANTS class!
-  private GAME_X = 700;
-  private GAME_Y = 700;
-
   private game: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
   private star: CCircle;
@@ -82,14 +78,16 @@ export class AppComponent implements AfterContentInit {
     }*/
     for (let x = 0; x <= AppConstants.PADS_X; x++) {
       for (let y = 0; y <= AppConstants.PADS_Y; y++) {
-        const padX = x * (AppConstants.PADS_WIDTH) + AppConstants.SPACING;
-        const padY = y * (AppConstants.PADS_HEIGHT) + AppConstants.SPACING;
+        const padX = x * AppConstants.PADS_WIDTH + AppConstants.SPACING;
+        const padY = y * AppConstants.PADS_HEIGHT + AppConstants.SPACING;
         const padWidth = AppConstants.PADS_WIDTH - AppConstants.SPACING * 2;
         const padHeight = AppConstants.PADS_HEIGHT - AppConstants.SPACING * 2;
-        const R = 255; // Math.floor(Math.random() * 255);
-        const G = 0; // Math.floor(Math.random() * 255);
-        const B = 0; // Math.floor(Math.random() * 255);
-        this.context.fillStyle = 'rgb(' + R + ', ' + G + ', ' + B + ')';
+        if (this.star.x >= padX - AppConstants.SPACING && this.star.x < padX + padWidth + AppConstants.SPACING &&
+            this.star.y >= padY - AppConstants.SPACING && this.star.y < padY + padHeight + AppConstants.SPACING) {
+          this.context.fillStyle = 'rgb(255, 255, 255)';
+        } else {
+          this.context.fillStyle = 'rgb(200, 200, 200)';
+        }
         this.context.fillRect(padX, padY, padWidth, padHeight);
       }
     }
