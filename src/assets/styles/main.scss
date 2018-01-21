@@ -31,6 +31,18 @@ h1 {
 
 .buttons {
     position: absolute;
+    display: inline-block;
     right: 5px;
     top: 5px;
+
+    ul {
+        margin: 0;
+        padding: 0;
+        list-style-type: none;
+
+        li {
+            padding-bottom: 5px;
+            text-align: right;
+        }
+    }
 }

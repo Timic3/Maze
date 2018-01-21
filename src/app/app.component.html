@@ -1,4 +1,9 @@
 <canvas width="500" height="500" id="game"></canvas>
 <div class="buttons">
-    <button color="accent" (click)="switchAnimations()" [innerHTML]="animationText" mat-raised-button></button>
+    <ul>
+        <li><button color="accent" (click)="toggleAnimations()" mat-raised-button>{{animationText}}</button></li>
+        <li><button color="accent" (click)="openSettings()" mat-raised-button>Settings</button></li>
+        <li><button color="accent" (click)="solveMaze()" mat-raised-button>Solve</button></li>
+        <li><button color="accent" (click)="resetMaze()" mat-raised-button>Reset</button></li>
+    </ul>
 </div>

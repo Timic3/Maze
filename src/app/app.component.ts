@@ -1,7 +1,8 @@
 import { Component, AfterContentInit, HostListener } from '@angular/core';
+// import { MatDialog } from '@angular/material';
 
 import { AppConstants } from './app.constants';
-import { CCircle } from './classes/CCircle';
+import { Cell, Walls } from './classes/Cell';
 
 // Find another way to link it with NPM
 declare var GlslCanvas: any;
@@ -12,14 +13,17 @@ declare var GlslCanvas: any;
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements AfterContentInit {
-  private glslSandbox: any;
-  private animationsEnabled = true;
-  private animationText = 'Disable fancy animations';
+  public glslSandbox: any;
+  public animationsEnabled = true;
+  public animationText = 'Disable fancy animations';
 
-  private game: HTMLCanvasElement;
-  private context: CanvasRenderingContext2D;
-  private star: CCircle;
-  private mouseDown = false;
+  public game: HTMLCanvasElement;
+  public context: CanvasRenderingContext2D;
+  public mouseDown = false;
+  public solution;
+
+  public star: number[] = [];
+  public starredPad: Cell;
 
   ngAfterContentInit() {
     // Construct GLSL sandbox
@@ -39,10 +43,11 @@ export class AppComponent implements AfterContentInit {
         this.glslSandbox.pause();
       }
     }
-
     // Update canvas based on window size
-    this.windowUpdate();
-    window.addEventListener('resize', this.windowUpdate, false);
+    galaxy.setAttribute('width', String(window.innerWidth));
+    galaxy.setAttribute('height', String(window.innerHeight));
+    // Update GL viewport to fit the canvas
+    this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
 
     // Game
     this.game = <HTMLCanvasElement>document.getElementById('game');
@@ -50,81 +55,115 @@ export class AppComponent implements AfterContentInit {
     this.game.setAttribute('width', String(AppConstants.GAME_WIDTH));
     this.game.setAttribute('height', String(AppConstants.GAME_HEIGHT));
 
-    this.star = new CCircle(10, 10, 15);
+    this.star = [0, 0];
 
+    // Generate
+    this.generateMaze();
+
+    // Start rendering
     this.gameLoop();
   }
 
+  // Retain scope (this) using Lambda expression.
   gameLoop = () => {
     requestAnimationFrame(this.gameLoop);
     this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
     this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
     this.context.fillRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
-    /*const spacingW = (this.GAME_X / 14 - 5);
-    const spacingH = (this.GAME_Y / 14 - 5);
-    const spacingRatio = (2 / 5);
-    for (let x = 0; x < this.GAME_X / (this.GAME_X / 14); x++) {
-      for (let y = 0; y < this.GAME_Y / (this.GAME_Y / 14); y++) {
-        const padX = x * (this.GAME_X / 14 + spacingRatio);
-        const padY = y * (this.GAME_X / 14 + spacingRatio);
-        if (this.star.x > padX && this.star.x < padX + spacingW &&
-            this.star.y > padY && this.star.y < padY + spacingH) {
-          this.context.fillStyle = 'rgba(255, 0, 255, 1)';
-        } else {
-          this.context.fillStyle = 'rgba(255, 255, 255, 1)';
-        }
-        this.context.fillRect(padX, padY, spacingW, spacingH);
-      }
-    }*/
-    for (let x = 0; x <= AppConstants.PADS_X; x++) {
-      for (let y = 0; y <= AppConstants.PADS_Y; y++) {
-        const padX = x * AppConstants.PADS_WIDTH + AppConstants.SPACING;
-        const padY = y * AppConstants.PADS_HEIGHT + AppConstants.SPACING;
-        const padWidth = AppConstants.PADS_WIDTH - AppConstants.SPACING * 2;
-        const padHeight = AppConstants.PADS_HEIGHT - AppConstants.SPACING * 2;
-        if (this.star.x >= padX - AppConstants.SPACING && this.star.x < padX + padWidth + AppConstants.SPACING &&
-            this.star.y >= padY - AppConstants.SPACING && this.star.y < padY + padHeight + AppConstants.SPACING) {
-          this.context.fillStyle = 'rgb(255, 255, 255)';
-        } else {
-          this.context.fillStyle = 'rgb(200, 200, 200)';
-        }
-        this.context.fillRect(padX, padY, padWidth, padHeight);
+    for (let x = 0; x < AppConstants.PADS_X; x++) {
+      for (let y = 0; y < AppConstants.PADS_Y; y++) {
+        const currentCell = Cell.list[x][y];
+        currentCell.draw(this.context, currentCell === this.starredPad);
       }
     }
-    // this.star.draw(this.context);
+
+    if (this.solution) {
+      this.context.fillStyle = 'red';
+      for (let i = 0; i < this.solution.length; i++) {
+        const cell = this.solution[i];
+        this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
+      }
+    }
+
+    /*if (this.star.length === 2) {
+      this.context.fillStyle = 'red';
+      const cursorX = this.star[0];
+      const cursorY = this.star[1];
+      const cell = Cell.list[cursorX][cursorY];
+      this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
+    }*/
   }
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
-    const canvasBounds = this.game.getBoundingClientRect();
-    const mouseX = event.clientX - canvasBounds.left;
-    const mouseY = event.clientY - canvasBounds.top;
-    this.star.x = mouseX;
-    this.star.y = mouseY;
+    const canvasBounds = this.game.getBoundingClientRect(),
+          mouseX = event.clientX - canvasBounds.left,
+          mouseY = event.clientY - canvasBounds.top;
+
+    // Complex collision checking
+    // Check if mouse is actually within canvas
+    if (mouseX >= 0 && mouseX < AppConstants.GAME_WIDTH &&
+        mouseY >= 0 && mouseY < AppConstants.GAME_HEIGHT) {
+          // Save the cursor position (might remove this?)
+          const cursor = [Math.floor(mouseX / AppConstants.PADS_WIDTH), Math.floor(mouseY / AppConstants.PADS_HEIGHT)];
+          // Get cursor difference between the cursor (your mouse) and the star (current pad position)
+          // Difference allows us to:
+          // 1. Limit the maximum radius around the star to 1 pad
+          // This prevents user to cheat by right-clicking and moving to another position
+          // 2. Check if the cursor is around the star, but not diagonally!
+          const cursorDiffX = Math.abs(cursor[0] - this.star[0]),
+                cursorDiffY = Math.abs(cursor[1] - this.star[1]);
+          if ((cursorDiffX === 1 && cursorDiffY === 0) ||
+              (cursorDiffX === 0 && cursorDiffY === 1)) {
+                // Wall check
+                const starCell = Cell.list[this.star[0]][this.star[1]],
+                      checkCell = Cell.list[cursor[0]][cursor[1]];
+                let direction = Walls.NORTH;
+                if (starCell.y > checkCell.y) {
+                  // Going north!
+                  direction = Walls.NORTH;
+                } else if (starCell.x < checkCell.x) {
+                  // Going east!
+                  direction = Walls.EAST;
+                } else if (starCell.y < checkCell.y) {
+                  // Going south!
+                  direction = Walls.SOUTH;
+                } else if (starCell.x > checkCell.x) {
+                  // Going west!
+                  direction = Walls.WEST;
+                }
+
+                // Check if star cell has a wall, and if not, move the star
+                if (!starCell.hasWall(direction)) {
+                  this.star = [checkCell.x, checkCell.y];
+                  this.starredPad = checkCell;
+                }
+          }
+    }
   }
 
-  @HostListener('document:mousedown', ['$event'])
+  /*@HostListener('mousedown', ['$event'])
   onMouseDown(event: MouseEvent) {
     this.mouseDown = true;
-    this.star.color = 'blue';
+    // this.star.color = 'blue';
   }
 
   @HostListener('document:mouseup', ['$event'])
   onMouseUp(event: MouseEvent) {
     this.mouseDown = false;
-    this.star.color = 'red';
-  }
+    // this.star.color = 'red';
+  }*/
 
-  // To retain scope (this) in event listener, I use Lambda expression
-  windowUpdate = () => {
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(event) {
     const galaxy = document.getElementById('galaxyBackground');
-    galaxy.setAttribute('width', String(window.innerWidth));
-    galaxy.setAttribute('height', String(window.innerHeight));
+    galaxy.setAttribute('width', String(event.target.innerWidth));
+    galaxy.setAttribute('height', String(event.target.innerHeight));
     // Update GL viewport to fit the canvas
     this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
   }
 
-  switchAnimations() {
+  toggleAnimations() {
     this.animationsEnabled = !this.animationsEnabled;
     localStorage.setItem('animationState', JSON.stringify(this.animationsEnabled));
     if (this.animationsEnabled) {
@@ -134,5 +173,50 @@ export class AppComponent implements AfterContentInit {
       this.animationText = 'Enable fancy animations';
       this.glslSandbox.pause();
     }
+  }
+
+  generateMaze() {
+    Cell.list = [];
+    for (let x = 0; x < AppConstants.PADS_X; x++) {
+      Cell.list[x] = [];
+      for (let y = 0; y < AppConstants.PADS_Y; y++) {
+        Cell.list[x][y] = new Cell(x, y);
+        if (x === 0 && y === 0) {
+          this.starredPad = Cell.list[x][y];
+          Cell.list[x][y].color = [150, 150, 150];
+        } else if (x === AppConstants.PADS_X - 1 && y === AppConstants.PADS_Y - 1) {
+          Cell.list[x][y].color = [150, 150, 150];
+        }
+      }
+    }
+
+    // Perform randomized depth-first search algorithm
+    // 1. Every cell must have all walls
+    // 2. Choose a random cell
+    // 3. From this cell, choose a random neighbor cell that wasn't visited before
+    // and delete walls between the current and previous cell
+    // 4. If there are no unvisited neighbors, backtrack to previous cell and repeat,
+    // otherwise continue
+
+    const startX = Math.floor(Math.random() * AppConstants.PADS_X);
+    const startY = Math.floor(Math.random() * AppConstants.PADS_Y);
+    Cell.list[startX][startY].visit(false);
+  }
+
+  openDialog() {
+    // let dialogRef = this.dialog.open();
+  }
+
+  solveMaze() {
+    this.solution = Cell.solve(Cell.list[0][0], Cell.list[AppConstants.PADS_X - 1][AppConstants.PADS_Y - 1]);
+    this.solution.pop();
+    this.solution.shift();
+  }
+
+  resetMaze() {
+    this.solution = [];
+    Cell.list = [];
+    this.star = [0, 0];
+    this.generateMaze();
   }
 }

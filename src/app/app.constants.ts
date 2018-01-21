@@ -12,5 +12,5 @@ export class AppConstants {
   static readonly PADS_HEIGHT = AppConstants.GAME_HEIGHT / AppConstants.PADS_Y;
 
   // Spacing between pads
-  static readonly SPACING = 1;
+  static readonly SPACING = 2;
 }
