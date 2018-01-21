@@ -1,5 +1,7 @@
 import { AppConstants } from '../app.constants';
 
+import { Easing } from './Utilities';
+
 export enum Walls {
   NORTH = 0,
   EAST = 1,
@@ -27,7 +29,7 @@ export class Cell {
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
-    this.color = [255, 255, 255];
+    this.color = [255, 255, 255, 0];
     this.visited = false;
     this.walls = [true, true, true, true];
 
@@ -130,24 +132,25 @@ export class Cell {
   draw(context: CanvasRenderingContext2D, didStarHit: boolean) {
     context.save();
     context.beginPath();
-    context.fillStyle = 'rgb(' + this.color[0] + ', ' + this.color[1] + ', ' + this.color[2] + ')';
-    // context.fillRect(this.padX, this.padY, this.padWidth, this.padHeight);
+    context.fillStyle = 'rgba(' + this.color[0] + ', ' + this.color[1] + ', ' + this.color[2] + ', ' + this.color[3] + ')';
+    context.fillRect(this.padX, this.padY, this.padWidth, this.padHeight);
 
     context.fillStyle = 'orange';
     if (didStarHit) {
-      this.animationStep += 0.15;
+      this.animationStep += 0.06;
       if (this.animationStep >= 1) {
         this.animationStep = 1;
       }
     } else {
-      this.animationStep -= 0.15;
+      this.animationStep -= 0.06;
       if (this.animationStep <= 0) {
         this.animationStep = 0;
       }
     }
-    const starX = this.padX + (this.padWidth / 2) * (1 - this.animationStep),
-          starY = this.padY + (this.padHeight / 2) * (1 - this.animationStep);
-    context.fillRect(starX, starY, this.padWidth * this.animationStep, this.padHeight * this.animationStep);
+    const easeAnimation = Easing.easeOutCubic(this.animationStep);
+    const starX = this.padX + (this.padWidth / 2) * (1 - easeAnimation),
+          starY = this.padY + (this.padHeight / 2) * (1 - easeAnimation);
+    context.fillRect(starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
 
     // Walls
     context.fillStyle = 'rgb(78, 48, 132)';

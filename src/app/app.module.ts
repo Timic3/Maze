@@ -1,20 +1,27 @@
 import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
 
-import { MatButtonModule } from '@angular/material';
+import { MatButtonModule, MatCheckboxModule, MatDialogModule, MatSnackBarModule } from '@angular/material';
 
 import { AppComponent } from './app.component';
-
+import { SettingsComponent } from './components/app.settings.component';
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    SettingsComponent
   ],
   imports: [
     BrowserModule,
-    MatButtonModule
+    BrowserAnimationsModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatDialogModule,
+    MatSnackBarModule
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
+  entryComponents: [SettingsComponent]
 })
 export class AppModule { }

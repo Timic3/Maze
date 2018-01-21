@@ -16,17 +16,37 @@ body {
 #game {
     position: absolute;
     margin: auto;
-    /*width: 500px;
-    height: 500px;*/
     top: 0;
     bottom: 0;
     left: 0;
     right: 0;
 }
 
-h1 {
+.winText {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    bottom: 0;
+    left: 0;
+    right: 0;
     color: white;
-    text-shadow: 2px 2px black;
+    text-align: center;
+    font-size: 8em;
+    line-height: 20px;
+    color: rgba(255, 255, 255, 0);
+    user-select: none;
+}
+
+.fadeIn {
+    font-size: 5em;
+    color: rgba(255, 255, 255, 255);
+    transition: all 1s cubic-bezier(0.6, 0.04, 0.98, 0.335); // EaseInCirc
+}
+
+.fadeOut {
+    font-size: 8em;
+    color: rgba(255, 255, 255, 0);
+    transition: all 1s ease;
 }
 
 .buttons {
@@ -45,4 +65,12 @@ h1 {
             text-align: right;
         }
     }
+}
+
+.dialogContent {
+    height: 200px;
+}
+
+.mat-simple-snackbar-action {
+    color: red;
 }

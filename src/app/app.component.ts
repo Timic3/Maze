@@ -1,8 +1,12 @@
 import { Component, AfterContentInit, HostListener } from '@angular/core';
-// import { MatDialog } from '@angular/material';
+import { MatDialog, MatSnackBar } from '@angular/material';
+
+import { SettingsComponent } from './components/app.settings.component';
 
 import { AppConstants } from './app.constants';
 import { Cell, Walls } from './classes/Cell';
+import { Gradient } from './classes/Gradient';
+import { Easing } from './classes/Utilities';
 
 // Find another way to link it with NPM
 declare var GlslCanvas: any;
@@ -14,34 +18,78 @@ declare var GlslCanvas: any;
 })
 export class AppComponent implements AfterContentInit {
   public glslSandbox: any;
-  public animationsEnabled = true;
-  public animationText = 'Disable fancy animations';
 
   public game: HTMLCanvasElement;
+  public galaxyAudio;
+  public starAudio;
+  public playStarAudio = true;
   public context: CanvasRenderingContext2D;
-  public mouseDown = false;
   public solution;
+
+  public gradient: Gradient;
 
   public star: number[] = [];
   public starredPad: Cell;
+  public mazeSolved = false;
+  public fadeOut = false;
+  public fadeStep = 0;
+
+  public settings: Map<String, any> = new Map<String, any>();
+
+  constructor(public dialog: MatDialog, public snackBar: MatSnackBar) { }
 
   ngAfterContentInit() {
     // Construct GLSL sandbox
     const galaxy = document.getElementById('galaxyBackground');
     this.glslSandbox = new GlslCanvas(galaxy);
 
-    const animationState = localStorage.getItem('animationState');
-    if (animationState == null) {
-      localStorage.setItem('animationState', JSON.stringify(false));
+    this.galaxyAudio = new Audio();
+    this.galaxyAudio.src = '../assets/sounds/background.mp3';
+    this.galaxyAudio.load();
+
+    this.starAudio = new Audio();
+    this.starAudio.src = '../assets/sounds/woosh.mp3';
+    this.starAudio.load();
+
+    if (typeof this.galaxyAudio.loop === 'boolean') {
+      this.galaxyAudio.loop = true;
     } else {
-      this.animationsEnabled = JSON.parse(animationState);
-      if (this.animationsEnabled) {
-        this.animationText = 'Disable fancy animations';
-        this.glslSandbox.play();
-      } else {
-        this.animationText = 'Enable fancy animations';
-        this.glslSandbox.pause();
-      }
+      this.galaxyAudio.addEventListener('ended', () => {
+        this.galaxyAudio.currentTime = 0;
+        this.galaxyAudio.play();
+      }, false);
+    }
+
+    // Set up gradient background
+    this.gradient = new Gradient(AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+    this.gradient.addStop(0, [
+      [9, 117, 190],
+      [59, 160, 89],
+      [230, 192, 39],
+      [238, 30, 77]
+    ]);
+    this.gradient.addStop(1, [
+      [205, 24, 75],
+      [33, 98, 155],
+      [64, 149, 69],
+      [228, 171, 33]
+    ]);
+
+    const settingsExist = localStorage.getItem('settings');
+    if (settingsExist == null) {
+      this.settings.set('galaxyAnimation', true);
+      this.settings.set('galaxyAudio', true);
+      this.settings.set('starAudio', true);
+      localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
+    } else {
+      const settings = new Map(JSON.parse(settingsExist));
+      const galaxyAnimation = settings.get('galaxyAnimation');
+      const galaxyAudio = settings.get('galaxyAudio');
+      const starAudio = settings.get('starAudio');
+      this.adjustSettings(galaxyAnimation, galaxyAudio, starAudio);
+      this.settings.set('galaxyAnimation', galaxyAnimation);
+      this.settings.set('galaxyAudio', galaxyAudio);
+      this.settings.set('starAudio', starAudio);
     }
     // Update canvas based on window size
     galaxy.setAttribute('width', String(window.innerWidth));
@@ -57,6 +105,10 @@ export class AppComponent implements AfterContentInit {
 
     this.star = [0, 0];
 
+    setTimeout(() => {
+      this.snackBar.open('Move your 🐁 to the 📙 pad and move it towards any unblocked path. Reach the 📗 pad to win.', 'Okay');
+    }, 1000);
+
     // Generate
     this.generateMaze();
 
@@ -68,7 +120,9 @@ export class AppComponent implements AfterContentInit {
   gameLoop = () => {
     requestAnimationFrame(this.gameLoop);
     this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
-    this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    this.gradient.updateStops();
+    const gradientStyle = this.gradient.getGradient(this.context);
+    this.context.fillStyle = gradientStyle;
     this.context.fillRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
     for (let x = 0; x < AppConstants.PADS_X; x++) {
       for (let y = 0; y < AppConstants.PADS_Y; y++) {
@@ -85,13 +139,23 @@ export class AppComponent implements AfterContentInit {
       }
     }
 
-    /*if (this.star.length === 2) {
-      this.context.fillStyle = 'red';
-      const cursorX = this.star[0];
-      const cursorY = this.star[1];
-      const cell = Cell.list[cursorX][cursorY];
-      this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
-    }*/
+    if (this.fadeOut) {
+      this.fadeStep -= 0.01;
+      if (this.fadeStep <= 0) {
+        this.fadeStep = 0;
+      }
+      const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
+      this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
+      this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
+    } else {
+      this.fadeStep += 0.01;
+      if (this.fadeStep >= 1) {
+        this.fadeStep = 1;
+      }
+      const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
+      this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
+      this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
+    }
   }
 
   @HostListener('document:mousemove', ['$event'])
@@ -102,7 +166,8 @@ export class AppComponent implements AfterContentInit {
 
     // Complex collision checking
     // Check if mouse is actually within canvas
-    if (mouseX >= 0 && mouseX < AppConstants.GAME_WIDTH &&
+    if (!this.mazeSolved &&
+        mouseX >= 0 && mouseX < AppConstants.GAME_WIDTH &&
         mouseY >= 0 && mouseY < AppConstants.GAME_HEIGHT) {
           // Save the cursor position (might remove this?)
           const cursor = [Math.floor(mouseX / AppConstants.PADS_WIDTH), Math.floor(mouseY / AppConstants.PADS_HEIGHT)];
@@ -137,22 +202,20 @@ export class AppComponent implements AfterContentInit {
                 if (!starCell.hasWall(direction)) {
                   this.star = [checkCell.x, checkCell.y];
                   this.starredPad = checkCell;
+                  if (this.playStarAudio) {
+                    this.starAudio.currentTime = 0;
+                    this.starAudio.play();
+                  }
+
+                  if (checkCell.x === AppConstants.PADS_X - 1 && checkCell.y === AppConstants.PADS_Y - 1) {
+                    // Reached the end
+                    this.mazeSolved = true;
+                    this.fadeOut = true;
+                  }
                 }
           }
     }
   }
-
-  /*@HostListener('mousedown', ['$event'])
-  onMouseDown(event: MouseEvent) {
-    this.mouseDown = true;
-    // this.star.color = 'blue';
-  }
-
-  @HostListener('document:mouseup', ['$event'])
-  onMouseUp(event: MouseEvent) {
-    this.mouseDown = false;
-    // this.star.color = 'red';
-  }*/
 
   @HostListener('window:resize', ['$event'])
   onWindowResize(event) {
@@ -163,18 +226,6 @@ export class AppComponent implements AfterContentInit {
     this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
   }
 
-  toggleAnimations() {
-    this.animationsEnabled = !this.animationsEnabled;
-    localStorage.setItem('animationState', JSON.stringify(this.animationsEnabled));
-    if (this.animationsEnabled) {
-      this.animationText = 'Disable fancy animations';
-      this.glslSandbox.play();
-    } else {
-      this.animationText = 'Enable fancy animations';
-      this.glslSandbox.pause();
-    }
-  }
-
   generateMaze() {
     Cell.list = [];
     for (let x = 0; x < AppConstants.PADS_X; x++) {
@@ -183,9 +234,9 @@ export class AppComponent implements AfterContentInit {
         Cell.list[x][y] = new Cell(x, y);
         if (x === 0 && y === 0) {
           this.starredPad = Cell.list[x][y];
-          Cell.list[x][y].color = [150, 150, 150];
+          Cell.list[x][y].color = [255, 255, 255, 255];
         } else if (x === AppConstants.PADS_X - 1 && y === AppConstants.PADS_Y - 1) {
-          Cell.list[x][y].color = [150, 150, 150];
+          Cell.list[x][y].color = [0, 255, 0, 255];
         }
       }
     }
@@ -203,14 +254,50 @@ export class AppComponent implements AfterContentInit {
     Cell.list[startX][startY].visit(false);
   }
 
-  openDialog() {
-    // let dialogRef = this.dialog.open();
+  openSettings() {
+    const dialog = this.dialog.open(SettingsComponent, {
+      width: '350px',
+      data: {
+        galaxyAnimation: this.settings.get('galaxyAnimation'),
+        galaxyAudio: this.settings.get('galaxyAudio'),
+        starAudio: this.settings.get('starAudio')
+      }
+    });
+
+    dialog.afterClosed()
+      .subscribe((settings) => {
+        if (settings) {
+          this.adjustSettings(settings[0], settings[1], settings[2]);
+          this.settings.set('galaxyAnimation', settings[0]);
+          this.settings.set('galaxyAudio', settings[1]);
+          this.settings.set('starAudio', settings[2]);
+          localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
+        }
+      });
+  }
+
+  adjustSettings(galaxyAnimation, galaxyAudio, starAudio) {
+    if (galaxyAnimation) {
+      this.glslSandbox.play();
+    } else {
+      this.glslSandbox.pause();
+    }
+
+    if (galaxyAudio) {
+      this.galaxyAudio.play();
+    } else {
+      this.galaxyAudio.pause();
+    }
+
+    this.playStarAudio = starAudio;
   }
 
   solveMaze() {
     this.solution = Cell.solve(Cell.list[0][0], Cell.list[AppConstants.PADS_X - 1][AppConstants.PADS_Y - 1]);
     this.solution.pop();
     this.solution.shift();
+    this.star = [0, 0];
+    this.mazeSolved = true;
   }
 
   resetMaze() {
@@ -218,5 +305,7 @@ export class AppComponent implements AfterContentInit {
     Cell.list = [];
     this.star = [0, 0];
     this.generateMaze();
+    this.mazeSolved = false;
+    this.fadeOut = false;
   }
 }
