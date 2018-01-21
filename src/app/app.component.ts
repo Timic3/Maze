@@ -44,11 +44,11 @@ export class AppComponent implements AfterContentInit {
     this.glslSandbox = new GlslCanvas(galaxy);
 
     this.galaxyAudio = new Audio();
-    this.galaxyAudio.src = '../assets/sounds/background.mp3';
+    this.galaxyAudio.src = './assets/sounds/background.mp3';
     this.galaxyAudio.load();
 
     this.starAudio = new Audio();
-    this.starAudio.src = '../assets/sounds/woosh.mp3';
+    this.starAudio.src = './assets/sounds/woosh.mp3';
     this.starAudio.load();
 
     if (typeof this.galaxyAudio.loop === 'boolean') {
