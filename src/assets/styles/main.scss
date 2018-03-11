@@ -1,6 +1,10 @@
 body {
     overflow: hidden;
     font-family: 'Ubuntu', sans-serif;
+    background-image: url('assets/images/galaxy.jpg');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: 0% 0%;
 }
 
 #galaxyBackground {

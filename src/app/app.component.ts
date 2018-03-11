@@ -8,17 +8,12 @@ import { Cell, Walls } from './classes/Cell';
 import { Gradient } from './classes/Gradient';
 import { Easing } from './classes/Utilities';
 
-// Find another way to link it with NPM
-declare var GlslCanvas: any;
-
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements AfterContentInit {
-  public glslSandbox: any;
-
   public game: HTMLCanvasElement;
   public galaxyAudio;
   public starAudio;
@@ -39,10 +34,6 @@ export class AppComponent implements AfterContentInit {
   constructor(public dialog: MatDialog, public snackBar: MatSnackBar) { }
 
   ngAfterContentInit() {
-    // Construct GLSL sandbox
-    const galaxy = document.getElementById('galaxyBackground');
-    this.glslSandbox = new GlslCanvas(galaxy);
-
     this.galaxyAudio = new Audio();
     this.galaxyAudio.src = './assets/sounds/background.mp3';
     this.galaxyAudio.load();
@@ -62,40 +53,36 @@ export class AppComponent implements AfterContentInit {
 
     // Set up gradient background
     this.gradient = new Gradient(AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+
     this.gradient.addStop(0, [
-      [9, 117, 190],
-      [59, 160, 89],
-      [230, 192, 39],
-      [238, 30, 77]
+      [16, 100, 228],
+      [63, 135, 228],
+      [50, 218, 228],
+      [98, 228, 188],
+      [105, 228, 140]
     ]);
+
     this.gradient.addStop(1, [
-      [205, 24, 75],
-      [33, 98, 155],
-      [64, 149, 69],
-      [228, 171, 33]
+      [50, 218, 228],
+      [105, 228, 140],
+      [98, 228, 188],
+      [16, 100, 228],
+      [63, 135, 228]
     ]);
 
     const settingsExist = localStorage.getItem('settings');
     if (settingsExist == null) {
-      this.settings.set('galaxyAnimation', true);
       this.settings.set('galaxyAudio', true);
       this.settings.set('starAudio', true);
       localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
     } else {
       const settings = new Map(JSON.parse(settingsExist));
-      const galaxyAnimation = settings.get('galaxyAnimation');
       const galaxyAudio = settings.get('galaxyAudio');
       const starAudio = settings.get('starAudio');
-      this.adjustSettings(galaxyAnimation, galaxyAudio, starAudio);
-      this.settings.set('galaxyAnimation', galaxyAnimation);
+      this.adjustSettings(galaxyAudio, starAudio);
       this.settings.set('galaxyAudio', galaxyAudio);
       this.settings.set('starAudio', starAudio);
     }
-    // Update canvas based on window size
-    galaxy.setAttribute('width', String(window.innerWidth));
-    galaxy.setAttribute('height', String(window.innerHeight));
-    // Update GL viewport to fit the canvas
-    this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
 
     // Game
     this.game = <HTMLCanvasElement>document.getElementById('game');
@@ -217,15 +204,6 @@ export class AppComponent implements AfterContentInit {
     }
   }
 
-  @HostListener('window:resize', ['$event'])
-  onWindowResize(event) {
-    const galaxy = document.getElementById('galaxyBackground');
-    galaxy.setAttribute('width', String(event.target.innerWidth));
-    galaxy.setAttribute('height', String(event.target.innerHeight));
-    // Update GL viewport to fit the canvas
-    this.glslSandbox.gl.viewport(0, 0, this.glslSandbox.gl.canvas.width, this.glslSandbox.canvas.height);
-  }
-
   generateMaze() {
     Cell.list = [];
     for (let x = 0; x < AppConstants.PADS_X; x++) {
@@ -258,7 +236,6 @@ export class AppComponent implements AfterContentInit {
     const dialog = this.dialog.open(SettingsComponent, {
       width: '350px',
       data: {
-        galaxyAnimation: this.settings.get('galaxyAnimation'),
         galaxyAudio: this.settings.get('galaxyAudio'),
         starAudio: this.settings.get('starAudio')
       }
@@ -267,22 +244,15 @@ export class AppComponent implements AfterContentInit {
     dialog.afterClosed()
       .subscribe((settings) => {
         if (settings) {
-          this.adjustSettings(settings[0], settings[1], settings[2]);
-          this.settings.set('galaxyAnimation', settings[0]);
-          this.settings.set('galaxyAudio', settings[1]);
-          this.settings.set('starAudio', settings[2]);
+          this.adjustSettings(settings[0], settings[1]);
+          this.settings.set('galaxyAudio', settings[0]);
+          this.settings.set('starAudio', settings[1]);
           localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
         }
       });
   }
 
-  adjustSettings(galaxyAnimation, galaxyAudio, starAudio) {
-    if (galaxyAnimation) {
-      this.glslSandbox.play();
-    } else {
-      this.glslSandbox.pause();
-    }
-
+  adjustSettings(galaxyAudio, starAudio) {
     if (galaxyAudio) {
       this.galaxyAudio.play();
     } else {
