@@ -1,10 +1,12 @@
-<h1 mat-dialog-title>Maze Settings</h1>
+<h1 mat-dialog-title>⚙️ Settings</h1>
 
 <mat-dialog-content>
-  <h5>Use these at your own risk!</h5>
+  <p>Use these at your own risk!</p>
   <mat-checkbox [checked]="galaxyAnimation" (change)="galaxyAnimation = !galaxyAnimation" color="primary">Galaxy animation</mat-checkbox><br>
   <mat-checkbox [checked]="galaxyAudio" (change)="galaxyAudio = !galaxyAudio" color="primary">Galaxy music</mat-checkbox><br>
-  <mat-checkbox [checked]="starAudio" (change)="starAudio = !starAudio" color="primary">Star movement sound</mat-checkbox>
+  <mat-checkbox [checked]="starAudio" (change)="starAudio = !starAudio" color="primary">Star movement sound</mat-checkbox><br>
+  <p>FPS limit</p>
+  <mat-slider thumbLabel [value]="fpsLimit" (input)="onSliderChange($event)" min="20" max="120" step="5" color="primary"></mat-slider>
   <h5>More settings like adjusting maze size coming soon.</h5>
 </mat-dialog-content>
 

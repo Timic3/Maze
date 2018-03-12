@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef } from '@angular/material';
 
 @Component({
   selector: 'app-hello',
@@ -7,13 +7,12 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
   styleUrls: ['./hello.component.scss']
 })
 export class HelloComponent {
+  public backstory = false;
 
-  constructor(public dialogRef: MatDialogRef<HelloComponent>, @Inject(MAT_DIALOG_DATA) public data: any) {
-
-  }
+  constructor(public dialogRef: MatDialogRef<HelloComponent>) { }
 
   confirm() {
-    this.dialogRef.close();
+    this.dialogRef.close(this.backstory);
   }
 
 }

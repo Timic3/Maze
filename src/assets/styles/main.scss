@@ -75,3 +75,11 @@ body {
 .mat-dialog-title {
     margin-bottom: 0 !important;
 }
+
+.mat-checkbox:last-of-type label {
+    margin-bottom: 1rem;
+}
+
+.mat-slider {
+    width: 100%;
+}

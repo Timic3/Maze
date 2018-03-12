@@ -25,6 +25,9 @@ export class Cell {
   public padHeight: number;
 
   protected animationStep = 0;
+  protected pulsateStep = 0;
+
+  public image;
 
   constructor(x: number, y: number) {
     this.x = x;
@@ -37,6 +40,9 @@ export class Cell {
     this.padY = this.y * AppConstants.PADS_HEIGHT + AppConstants.SPACING;
     this.padWidth = AppConstants.PADS_WIDTH - AppConstants.SPACING * 2;
     this.padHeight = AppConstants.PADS_HEIGHT - AppConstants.SPACING * 2;
+
+    this.image = new Image();
+    this.image.src = 'assets/images/star.png';
   }
 
   // Solve with backtracking algorithm
@@ -132,8 +138,22 @@ export class Cell {
   draw(context: CanvasRenderingContext2D, didStarHit: boolean) {
     context.save();
     context.beginPath();
-    context.fillStyle = 'rgba(' + this.color[0] + ', ' + this.color[1] + ', ' + this.color[2] + ', ' + this.color[3] + ')';
-    context.fillRect(this.padX, this.padY, this.padWidth, this.padHeight);
+    // context.fillStyle = 'rgba(' + this.color[0] + ', ' + this.color[1] + ', ' + this.color[2] + ', ' + this.color[3] + ')';
+    // context.fillRect(this.padX, this.padY, this.padWidth, this.padHeight);
+
+    if (this.x === AppConstants.PADS_X - 1 && this.y === AppConstants.PADS_Y - 1) {
+      this.pulsateStep += 0.01;
+      if (this.pulsateStep >= 1) {
+        this.pulsateStep = 0;
+      }
+      const pulsateAnimation = Easing.easeOutCubic(this.pulsateStep);
+      context.strokeStyle = 'rgba(255, 255, 255, ' + (1 - this.pulsateStep) + ')';
+      context.lineWidth = 2.5;
+      context.beginPath();
+      context.arc(this.padX + (this.padWidth / 2), this.padY + (this.padHeight / 2), 70 * pulsateAnimation, 0, Math.PI * 2);
+      context.closePath();
+      context.stroke();
+    }
 
     context.fillStyle = 'orange';
     if (didStarHit) {
@@ -147,10 +167,15 @@ export class Cell {
         this.animationStep = 0;
       }
     }
+
     const easeAnimation = Easing.easeOutCubic(this.animationStep);
     const starX = this.padX + (this.padWidth / 2) * (1 - easeAnimation),
           starY = this.padY + (this.padHeight / 2) * (1 - easeAnimation);
-    context.fillRect(starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+    if (this.image.complete) {
+      context.drawImage(this.image, starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+    } else {
+      context.fillRect(starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+    }
 
     // Walls
     context.fillStyle = 'rgb(78, 48, 132)';

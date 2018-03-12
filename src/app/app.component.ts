@@ -43,6 +43,7 @@ export class AppComponent implements AfterViewInit {
   public elapsed = [];
 
   public starFPS = 27;
+  public gameFPS = 60;
 
   constructor(public dialog: MatDialog) { }
 
@@ -71,16 +72,20 @@ export class AppComponent implements AfterViewInit {
       this.settings.set('galaxyAnimation', true);
       this.settings.set('galaxyAudio', true);
       this.settings.set('starAudio', true);
+      this.settings.set('fpsLimit', 60);
       localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
+      this.galaxyAudio.play();
     } else {
       const settings = new Map(JSON.parse(settingsExist));
       const galaxyAnimation = settings.get('galaxyAnimation');
       const galaxyAudio = settings.get('galaxyAudio');
       const starAudio = settings.get('starAudio');
-      this.adjustSettings(galaxyAnimation, galaxyAudio, starAudio);
+      const fpsLimit = settings.get('fpsLimit');
+      this.adjustSettings(galaxyAnimation, galaxyAudio, starAudio, fpsLimit);
       this.settings.set('galaxyAnimation', galaxyAnimation);
       this.settings.set('galaxyAudio', galaxyAudio);
       this.settings.set('starAudio', starAudio);
+      this.settings.set('fpsLimit', fpsLimit);
     }
 
     setTimeout(() => {
@@ -157,9 +162,9 @@ export class AppComponent implements AfterViewInit {
     this.now[1] = Date.now();
     this.elapsed[1] = this.now[1] - this.then[1];
 
-    // Limit FPS to 60
-    if (this.elapsed[1] > 1000 / 60) {
-      this.then[1] = this.now[1] - (this.elapsed[1] % (1000 / 60));
+    // Limit FPS to ?
+    if (this.elapsed[1] > 1000 / this.gameFPS) {
+      this.then[1] = this.now[1] - (this.elapsed[1] % (1000 / this.gameFPS));
 
       this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
       this.gradient.updateStops();
@@ -174,7 +179,7 @@ export class AppComponent implements AfterViewInit {
       }
 
       if (this.solution) {
-        this.context.fillStyle = 'red';
+        this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
         for (let i = 0; i < this.solution.length; i++) {
           const cell = this.solution[i];
           this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
@@ -280,7 +285,7 @@ export class AppComponent implements AfterViewInit {
         Cell.list[x][y] = new Cell(x, y);
         if (x === 0 && y === 0) {
           this.starredPad = Cell.list[x][y];
-          Cell.list[x][y].color = [255, 255, 255, 255];
+          Cell.list[x][y].color = [255, 255, 255, 0];
         } else if (x === AppConstants.PADS_X - 1 && y === AppConstants.PADS_Y - 1) {
           Cell.list[x][y].color = [0, 255, 0, 255];
         }
@@ -303,27 +308,38 @@ export class AppComponent implements AfterViewInit {
   openSettings() {
     const dialog = this.dialog.open(SettingsComponent, {
       width: '350px',
-      height: '350px',
       data: {
         galaxyAnimation: this.settings.get('galaxyAnimation'),
         galaxyAudio: this.settings.get('galaxyAudio'),
-        starAudio: this.settings.get('starAudio')
+        starAudio: this.settings.get('starAudio'),
+        fpsLimit: this.settings.get('fpsLimit')
       }
     });
 
     dialog.afterClosed()
       .subscribe((settings) => {
         if (settings) {
-          this.adjustSettings(settings[0], settings[1], settings[2]);
+          this.adjustSettings(settings[0], settings[1], settings[2], settings[3]);
           this.settings.set('galaxyAnimation', settings[0]);
           this.settings.set('galaxyAudio', settings[1]);
           this.settings.set('starAudio', settings[2]);
+          this.settings.set('fpsLimit', settings[3]);
           localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
         }
       });
   }
 
   initiateHelloScreen() {
+    if (JSON.parse(localStorage.getItem('backstory'))) {
+      this.postHelloScreen();
+      this.gameStarted = true;
+      const galaxy = document.getElementById('galaxy');
+      galaxy.setAttribute('width', String(window.innerWidth));
+      galaxy.setAttribute('height', String(window.innerHeight));
+      StarParticle.width = window.innerWidth;
+      StarParticle.height = window.innerHeight;
+      return;
+    }
     // Temporary work around due to change detection hook bug
     // https://github.com/angular/angular/issues/15634
     setTimeout(() => {
@@ -334,7 +350,10 @@ export class AppComponent implements AfterViewInit {
         }
       });
       dialog.afterClosed()
-        .subscribe(() => {
+        .subscribe((backstory) => {
+          if (backstory) {
+            localStorage.setItem('backstory', JSON.stringify(true));
+          }
           this.postHelloScreen();
           this.gameStarted = true;
         });
@@ -346,7 +365,7 @@ export class AppComponent implements AfterViewInit {
     });
   }
 
-  adjustSettings(galaxyAnimation, galaxyAudio, starAudio) {
+  adjustSettings(galaxyAnimation, galaxyAudio, starAudio, fpsLimit) {
     if (galaxyAnimation) {
       this.starFPS = 27;
     } else {
@@ -360,6 +379,7 @@ export class AppComponent implements AfterViewInit {
     }
 
     this.playStarAudio = starAudio;
+    this.gameFPS = fpsLimit;
   }
 
   solveMaze() {
