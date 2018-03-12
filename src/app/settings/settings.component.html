@@ -1,0 +1,18 @@
+<h1 mat-dialog-title>Maze Settings</h1>
+
+<mat-dialog-content>
+  <h5>Use these at your own risk!</h5>
+  <mat-checkbox [checked]="galaxyAnimation" (change)="galaxyAnimation = !galaxyAnimation" color="primary">Galaxy animation</mat-checkbox><br>
+  <mat-checkbox [checked]="galaxyAudio" (change)="galaxyAudio = !galaxyAudio" color="primary">Galaxy music</mat-checkbox><br>
+  <mat-checkbox [checked]="starAudio" (change)="starAudio = !starAudio" color="primary">Star movement sound</mat-checkbox>
+  <h5>More settings like adjusting maze size coming soon.</h5>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button (click)="confirm()" color="primary" mat-raised-button>
+    Save
+  </button>
+  <button (click)="dialogRef.close()" mat-raised-button>
+    Cancel
+  </button>
+</mat-dialog-actions>

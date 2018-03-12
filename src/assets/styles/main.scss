@@ -1,13 +1,14 @@
 body {
     overflow: hidden;
     font-family: 'Ubuntu', sans-serif;
-    background-image: url('assets/images/galaxy.jpg');
+    background: url('assets/images/galaxy.jpg') no-repeat center center fixed;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
     background-size: cover;
-    background-repeat: no-repeat;
-    background-position: 0% 0%;
 }
 
-#galaxyBackground {
+#galaxy {
     display: block;
     position: fixed;
     top: 0;
@@ -71,10 +72,6 @@ body {
     }
 }
 
-.dialogContent {
-    height: 200px;
-}
-
-.mat-simple-snackbar-action {
-    color: white;
+.mat-dialog-title {
+    margin-bottom: 0 !important;
 }

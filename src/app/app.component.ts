@@ -1,25 +1,31 @@
-import { Component, AfterContentInit, HostListener } from '@angular/core';
-import { MatDialog, MatSnackBar } from '@angular/material';
+import { Component, AfterViewInit, HostListener } from '@angular/core';
+import { MatDialog } from '@angular/material';
 
-import { SettingsComponent } from './components/app.settings.component';
+import { SettingsComponent } from './settings/settings.component';
+import { HelloComponent } from './hello/hello.component';
 
 import { AppConstants } from './app.constants';
 import { Cell, Walls } from './classes/Cell';
 import { Gradient } from './classes/Gradient';
 import { Easing } from './classes/Utilities';
+import { StarParticle } from './classes/StarParticle';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent implements AfterContentInit {
+export class AppComponent implements AfterViewInit {
   public game: HTMLCanvasElement;
+  public gameStarted = false;
   public galaxyAudio;
   public starAudio;
   public playStarAudio = true;
   public context: CanvasRenderingContext2D;
+  public galaxyContext: CanvasRenderingContext2D;
   public solution;
+
+  public starfield = [];
 
   public gradient: Gradient;
 
@@ -31,9 +37,18 @@ export class AppComponent implements AfterContentInit {
 
   public settings: Map<String, any> = new Map<String, any>();
 
-  constructor(public dialog: MatDialog, public snackBar: MatSnackBar) { }
+  // FPS stuff
+  public now = [];
+  public then = [];
+  public elapsed = [];
 
-  ngAfterContentInit() {
+  public starFPS = 27;
+
+  constructor(public dialog: MatDialog) { }
+
+  ngAfterViewInit() {
+    this.initiateHelloScreen();
+
     this.galaxyAudio = new Audio();
     this.galaxyAudio.src = './assets/sounds/background.mp3';
     this.galaxyAudio.load();
@@ -51,6 +66,37 @@ export class AppComponent implements AfterContentInit {
       }, false);
     }
 
+    const settingsExist = localStorage.getItem('settings');
+    if (settingsExist == null) {
+      this.settings.set('galaxyAnimation', true);
+      this.settings.set('galaxyAudio', true);
+      this.settings.set('starAudio', true);
+      localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
+    } else {
+      const settings = new Map(JSON.parse(settingsExist));
+      const galaxyAnimation = settings.get('galaxyAnimation');
+      const galaxyAudio = settings.get('galaxyAudio');
+      const starAudio = settings.get('starAudio');
+      this.adjustSettings(galaxyAnimation, galaxyAudio, starAudio);
+      this.settings.set('galaxyAnimation', galaxyAnimation);
+      this.settings.set('galaxyAudio', galaxyAudio);
+      this.settings.set('starAudio', starAudio);
+    }
+
+    setTimeout(() => {
+      const galaxy = <HTMLCanvasElement>document.getElementById('galaxy');
+      this.galaxyContext = <CanvasRenderingContext2D>galaxy.getContext('2d');
+      for (let i = 0; i < 100; i++) {
+        this.starfield[i] = new StarParticle(this.galaxyContext);
+        this.starfield[i].reset();
+      }
+
+      this.then[0] = Date.now();
+      this.starLoop();
+    });
+  }
+
+  postHelloScreen() {
     // Set up gradient background
     this.gradient = new Gradient(AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
 
@@ -70,20 +116,6 @@ export class AppComponent implements AfterContentInit {
       [63, 135, 228]
     ]);
 
-    const settingsExist = localStorage.getItem('settings');
-    if (settingsExist == null) {
-      this.settings.set('galaxyAudio', true);
-      this.settings.set('starAudio', true);
-      localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
-    } else {
-      const settings = new Map(JSON.parse(settingsExist));
-      const galaxyAudio = settings.get('galaxyAudio');
-      const starAudio = settings.get('starAudio');
-      this.adjustSettings(galaxyAudio, starAudio);
-      this.settings.set('galaxyAudio', galaxyAudio);
-      this.settings.set('starAudio', starAudio);
-    }
-
     // Game
     this.game = <HTMLCanvasElement>document.getElementById('game');
     this.context = this.game.getContext('2d');
@@ -92,61 +124,97 @@ export class AppComponent implements AfterContentInit {
 
     this.star = [0, 0];
 
-    setTimeout(() => {
-      this.snackBar.open('Move your 🐁 to the 📙 pad and move it towards any unblocked path. Reach the 📗 pad to win.', 'Okay');
-    }, 1000);
-
     // Generate
     this.generateMaze();
 
     // Start rendering
+    this.then[1] = Date.now();
     this.gameLoop();
+  }
+
+  starLoop = () => {
+    requestAnimationFrame(this.starLoop);
+    this.now[0] = Date.now();
+    this.elapsed[0] = this.now[0] - this.then[0];
+
+    // Limit FPS to 27
+    if (this.elapsed[0] > 1000 / this.starFPS) {
+      this.then[0] = this.now[0] - (this.elapsed[0] % (1000 / this.starFPS));
+
+      this.galaxyContext.clearRect(0, 0, StarParticle.width, StarParticle.height);
+      this.galaxyContext.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < this.starfield.length; i++) {
+        this.starfield[i].fade();
+        this.starfield[i].move();
+        this.starfield[i].draw();
+      }
+    }
   }
 
   // Retain scope (this) using Lambda expression.
   gameLoop = () => {
     requestAnimationFrame(this.gameLoop);
-    this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
-    this.gradient.updateStops();
-    const gradientStyle = this.gradient.getGradient(this.context);
-    this.context.fillStyle = gradientStyle;
-    this.context.fillRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
-    for (let x = 0; x < AppConstants.PADS_X; x++) {
-      for (let y = 0; y < AppConstants.PADS_Y; y++) {
-        const currentCell = Cell.list[x][y];
-        currentCell.draw(this.context, currentCell === this.starredPad);
-      }
-    }
+    this.now[1] = Date.now();
+    this.elapsed[1] = this.now[1] - this.then[1];
 
-    if (this.solution) {
-      this.context.fillStyle = 'red';
-      for (let i = 0; i < this.solution.length; i++) {
-        const cell = this.solution[i];
-        this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
-      }
-    }
+    // Limit FPS to 60
+    if (this.elapsed[1] > 1000 / 60) {
+      this.then[1] = this.now[1] - (this.elapsed[1] % (1000 / 60));
 
-    if (this.fadeOut) {
-      this.fadeStep -= 0.01;
-      if (this.fadeStep <= 0) {
-        this.fadeStep = 0;
+      this.context.clearRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+      this.gradient.updateStops();
+      const gradientStyle = this.gradient.getGradient(this.context);
+      this.context.fillStyle = gradientStyle;
+      this.context.fillRect(0, 0, AppConstants.GAME_WIDTH, AppConstants.GAME_HEIGHT);
+      for (let x = 0; x < AppConstants.PADS_X; x++) {
+        for (let y = 0; y < AppConstants.PADS_Y; y++) {
+          const currentCell = Cell.list[x][y];
+          currentCell.draw(this.context, currentCell === this.starredPad);
+        }
       }
-      const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
-      this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
-      this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
-    } else {
-      this.fadeStep += 0.01;
-      if (this.fadeStep >= 1) {
-        this.fadeStep = 1;
+
+      if (this.solution) {
+        this.context.fillStyle = 'red';
+        for (let i = 0; i < this.solution.length; i++) {
+          const cell = this.solution[i];
+          this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
+        }
       }
-      const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
-      this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
-      this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
+
+      if (this.fadeOut) {
+        this.fadeStep -= 0.01;
+        if (this.fadeStep <= 0) {
+          this.fadeStep = 0;
+        }
+        const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
+        this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
+        this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
+      } else {
+        this.fadeStep += 0.01;
+        if (this.fadeStep >= 1) {
+          this.fadeStep = 1;
+        }
+        const easeAnimation = Easing.easeInOutCubic(this.fadeStep);
+        this.game.style.width = String(easeAnimation * AppConstants.GAME_WIDTH) + 'px';
+        this.game.style.height = String(easeAnimation * AppConstants.GAME_HEIGHT) + 'px';
+      }
     }
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(event) {
+    const galaxy = document.getElementById('galaxy');
+    galaxy.setAttribute('width', String(event.target.innerWidth));
+    galaxy.setAttribute('height', String(event.target.innerHeight));
+    StarParticle.width = event.target.innerWidth;
+    StarParticle.height = event.target.innerHeight;
   }
 
   @HostListener('document:mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
+    if (!this.gameStarted) {
+      return;
+    }
     const canvasBounds = this.game.getBoundingClientRect(),
           mouseX = event.clientX - canvasBounds.left,
           mouseY = event.clientY - canvasBounds.top;
@@ -235,7 +303,9 @@ export class AppComponent implements AfterContentInit {
   openSettings() {
     const dialog = this.dialog.open(SettingsComponent, {
       width: '350px',
+      height: '350px',
       data: {
+        galaxyAnimation: this.settings.get('galaxyAnimation'),
         galaxyAudio: this.settings.get('galaxyAudio'),
         starAudio: this.settings.get('starAudio')
       }
@@ -244,15 +314,45 @@ export class AppComponent implements AfterContentInit {
     dialog.afterClosed()
       .subscribe((settings) => {
         if (settings) {
-          this.adjustSettings(settings[0], settings[1]);
-          this.settings.set('galaxyAudio', settings[0]);
-          this.settings.set('starAudio', settings[1]);
+          this.adjustSettings(settings[0], settings[1], settings[2]);
+          this.settings.set('galaxyAnimation', settings[0]);
+          this.settings.set('galaxyAudio', settings[1]);
+          this.settings.set('starAudio', settings[2]);
           localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
         }
       });
   }
 
-  adjustSettings(galaxyAudio, starAudio) {
+  initiateHelloScreen() {
+    // Temporary work around due to change detection hook bug
+    // https://github.com/angular/angular/issues/15634
+    setTimeout(() => {
+      const dialog = this.dialog.open(HelloComponent, {
+        width: '500px',
+        disableClose: true,
+        data: {
+        }
+      });
+      dialog.afterClosed()
+        .subscribe(() => {
+          this.postHelloScreen();
+          this.gameStarted = true;
+        });
+      const galaxy = document.getElementById('galaxy');
+      galaxy.setAttribute('width', String(window.innerWidth));
+      galaxy.setAttribute('height', String(window.innerHeight));
+      StarParticle.width = window.innerWidth;
+      StarParticle.height = window.innerHeight;
+    });
+  }
+
+  adjustSettings(galaxyAnimation, galaxyAudio, starAudio) {
+    if (galaxyAnimation) {
+      this.starFPS = 27;
+    } else {
+      this.starFPS = 0;
+    }
+
     if (galaxyAudio) {
       this.galaxyAudio.play();
     } else {
