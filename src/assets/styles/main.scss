@@ -34,17 +34,18 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    color: white;
     text-align: center;
     font-size: 8em;
     line-height: 20px;
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0);
     color: rgba(255, 255, 255, 0);
     user-select: none;
 }
 
 .fadeIn {
     font-size: 5em;
-    color: rgba(255, 255, 255, 255);
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 1);
+    color: rgba(255, 255, 255, 1);
     transition: all 1s cubic-bezier(0.6, 0.04, 0.98, 0.335); // EaseInCirc
 }
 

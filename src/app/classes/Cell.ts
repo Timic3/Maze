@@ -168,13 +168,15 @@ export class Cell {
       }
     }
 
-    const easeAnimation = Easing.easeOutCubic(this.animationStep);
-    const starX = this.padX + (this.padWidth / 2) * (1 - easeAnimation),
-          starY = this.padY + (this.padHeight / 2) * (1 - easeAnimation);
-    if (this.image.complete) {
-      context.drawImage(this.image, starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
-    } else {
-      context.fillRect(starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+    if (this.animationStep !== 0) {
+      const easeAnimation = Easing.easeOutCubic(this.animationStep);
+      const starX = this.padX + (this.padWidth / 2) * (1 - easeAnimation),
+            starY = this.padY + (this.padHeight / 2) * (1 - easeAnimation);
+      if (this.image.complete) {
+        context.drawImage(this.image, starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+      } else {
+        context.fillRect(starX, starY, this.padWidth * easeAnimation, this.padHeight * easeAnimation);
+      }
     }
 
     // Walls

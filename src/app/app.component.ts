@@ -23,7 +23,11 @@ export class AppComponent implements AfterViewInit {
   public playStarAudio = true;
   public context: CanvasRenderingContext2D;
   public galaxyContext: CanvasRenderingContext2D;
-  public solution;
+  public solution = [];
+  public solutionVisibility = [];
+  public drawSolutionStep = 0;
+
+  public winText = 'Good job!';
 
   public starfield = [];
 
@@ -34,6 +38,8 @@ export class AppComponent implements AfterViewInit {
   public mazeSolved = false;
   public fadeOut = false;
   public fadeStep = 0;
+  public finishTimer;
+  public drawInterval;
 
   public settings: Map<String, any> = new Map<String, any>();
 
@@ -73,6 +79,7 @@ export class AppComponent implements AfterViewInit {
       this.settings.set('galaxyAudio', true);
       this.settings.set('starAudio', true);
       this.settings.set('fpsLimit', 60);
+      this.gameFPS = 60;
       localStorage.setItem('settings', JSON.stringify(Array.from(this.settings.entries())));
       this.galaxyAudio.play();
     } else {
@@ -178,11 +185,20 @@ export class AppComponent implements AfterViewInit {
         }
       }
 
-      if (this.solution) {
-        this.context.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        for (let i = 0; i < this.solution.length; i++) {
+      if (this.mazeSolved) {
+        for (let i = 0; i < this.drawSolutionStep; i++) {
+          this.solutionVisibility[i] += 0.06; // 1 / this.elapsed[1];
+          if (this.solutionVisibility[i] >= 1) {
+            this.solutionVisibility[i] = 1;
+          }
+
+          const easeAnimation = Easing.easeOutCubic(this.solutionVisibility[i]);
+          this.context.fillStyle = 'rgba(251, 192, 45, 0.6)';
           const cell = this.solution[i];
-          this.context.fillRect(cell.padX, cell.padY, cell.padWidth, cell.padHeight);
+
+          const pathX = cell.padX + (cell.padWidth / 2) * (1 - easeAnimation),
+                pathY = cell.padY + (cell.padHeight / 2) * (1 - easeAnimation);
+          this.context.fillRect(pathX, pathY, cell.padWidth * easeAnimation, cell.padHeight * easeAnimation);
         }
       }
 
@@ -271,6 +287,9 @@ export class AppComponent implements AfterViewInit {
                     // Reached the end
                     this.mazeSolved = true;
                     this.fadeOut = true;
+                    this.finishTimer = setTimeout(() => {
+                      this.resetMaze();
+                    }, 5000);
                   }
                 }
           }
@@ -340,7 +359,7 @@ export class AppComponent implements AfterViewInit {
       StarParticle.height = window.innerHeight;
       return;
     }
-    // Temporary work around due to change detection hook bug
+    // Temporary workaround due to change detection hook bug
     // https://github.com/angular/angular/issues/15634
     setTimeout(() => {
       const dialog = this.dialog.open(HelloComponent, {
@@ -384,14 +403,25 @@ export class AppComponent implements AfterViewInit {
 
   solveMaze() {
     this.solution = Cell.solve(Cell.list[0][0], Cell.list[AppConstants.PADS_X - 1][AppConstants.PADS_Y - 1]);
-    this.solution.pop();
-    this.solution.shift();
+    // this.solution.pop();
+    // this.solution.shift();
+    this.drawInterval = setInterval(() => {
+      if (this.drawSolutionStep !== this.solution.length) {
+        this.solutionVisibility[this.drawSolutionStep] = 0;
+        this.drawSolutionStep++;
+        return;
+      }
+      clearInterval(this.drawInterval);
+    }, 100);
     this.star = [0, 0];
     this.mazeSolved = true;
   }
 
   resetMaze() {
+    clearTimeout(this.finishTimer);
     this.solution = [];
+    this.drawSolutionStep = 0;
+    this.solutionVisibility = [];
     Cell.list = [];
     this.star = [0, 0];
     this.generateMaze();
