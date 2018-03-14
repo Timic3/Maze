@@ -2,7 +2,14 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
 
-import { MatButtonModule, MatCheckboxModule, MatDialogModule, MatSliderModule } from '@angular/material';
+import {
+  MatButtonModule,
+  MatCheckboxModule,
+  MatDialogModule,
+  MatIconModule,
+  MatSliderModule,
+  MatSlideToggleModule
+} from '@angular/material';
 
 import { AppComponent } from './app.component';
 import { SettingsComponent } from './settings/settings.component';
@@ -20,7 +27,9 @@ import { HelloComponent } from './hello/hello.component';
     MatButtonModule,
     MatCheckboxModule,
     MatDialogModule,
-    MatSliderModule
+    MatIconModule,
+    MatSliderModule,
+    MatSlideToggleModule
   ],
   providers: [],
   bootstrap: [AppComponent],

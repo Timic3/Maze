@@ -279,8 +279,8 @@ export class AppComponent implements AfterViewInit {
                   this.star = [checkCell.x, checkCell.y];
                   this.starredPad = checkCell;
                   if (this.playStarAudio) {
-                    this.starAudio.currentTime = 0;
-                    this.starAudio.play();
+                    // this.starAudio.currentTime = 0;
+                    this.starAudio.cloneNode(true).play();
                   }
 
                   if (checkCell.x === AppConstants.PADS_X - 1 && checkCell.y === AppConstants.PADS_Y - 1) {
@@ -398,7 +398,7 @@ export class AppComponent implements AfterViewInit {
     }
 
     this.playStarAudio = starAudio;
-    this.gameFPS = fpsLimit;
+    this.gameFPS = Math.max(Math.min(fpsLimit, 120), 30);
   }
 
   solveMaze() {
