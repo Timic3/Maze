@@ -1,8 +1,7 @@
 {
   "name": "maze",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "license": "MIT",
-  "main": "main.js",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
