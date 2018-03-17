@@ -1,27 +1,21 @@
-# Maze
+# Galaxy Maze
+Galaxy themed Maze made for school using Angular framework. Written in Typescript, SCSS and HTML5.
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.6.3.
+## Backstory
+The universe has blessed you upon a very complex task. You need to guide the lost star to the right spot in its universe.
+You wield the power of an ancient magnet (which origins are unknown) that can attract the stars of your choosing.
 
-## Development server
+You can move the star with your mouse. You can only move it to the nearest pad.
+The universe is forgiving, so you can move it across walls as many times as you like, but the star won't move along you.
+Move it to the pulsating spot, that's where the energy leaks into the endless space and must be filled.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+## Download
+You can download compiled project [here](https://github.com/Timic3/Maze/releases/latest) or even better, view it in action [here](https://timic3.github.io/Maze/)
 
-## Code scaffolding
-
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `-prod` flag for a production build.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+## Compiling
+* Install Node.js (includes npm too)
+* Install Angular CLI with ```npm install -g @angular/cli@latest```
+* Download the [latest source](https://github.com/Timic3/Maze/archive/master.zip) of Galaxy Maze and unzip it
+* Move into the same directory with command prompt and run ```npm install``` to install dependencies
+* Run ```ng serve``` and open ```localhost:4200``` once it builds
+* You can also build it with ```ng build``` for development build or ```ng build --prod``` for production build
