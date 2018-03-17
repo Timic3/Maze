@@ -1,5 +1,5 @@
 # Galaxy Maze
-Galaxy themed Maze made for school using Angular framework. Written in Typescript, SCSS and HTML5.
+Galaxy themed Maze game for school built using Angular framework. Written in Typescript, SCSS and HTML5.
 
 ## Backstory
 The universe has blessed you upon a very complex task. You need to guide the lost star to the right spot in its universe.
